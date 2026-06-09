@@ -4,268 +4,140 @@
 
 ### AI-Powered Academic Productivity Platform
 
-Version: 1.0
+Version: 1.0 (Final Release)
 
-Status: Draft
+Status: Approved / Final
 
 ---
 
 # 1. Introduction
 
 ## 1.1 Purpose
-
-Dokumen ini menjelaskan kebutuhan perangkat lunak (Software Requirements Specification) untuk aplikasi UMT Academic Assistant.
-
-Dokumen ini menjadi acuan dalam proses desain sistem, implementasi, pengujian, dan evaluasi aplikasi.
-
----
+Dokumen ini menjelaskan spesifikasi kebutuhan perangkat lunak (Software Requirements Specification) untuk aplikasi **UMT Academic Assistant**. Dokumen ini menjadi pedoman utama dalam pengembangan, pengujian, dan evaluasi kualitas sistem untuk pengumpulan UAS Pemrograman Berorientasi Objek.
 
 ## 1.2 Scope
+UMT Academic Assistant adalah aplikasi desktop berbasis Java Swing dengan look-and-feel FlatLaf yang membantu mahasiswa mengelola aktivitas akademik mereka secara privat (multi-user terisolasi) serta memanfaatkan kecerdasan buatan (AI) berbasis Google Gemini 2.5 Flash melalui Replicate API.
 
-UMT Academic Assistant merupakan aplikasi desktop berbasis Java yang membantu mahasiswa mengelola aktivitas akademik serta memanfaatkan Artificial Intelligence untuk mendukung proses belajar.
-
-Fitur utama:
-
-* Manajemen Mata Kuliah
-* Manajemen Tugas
-* Manajemen Catatan
-* Smart Study Planner
-* Academic Health Analyzer
-* Quiz Generator
-
----
-
-## 1.3 Intended Users
-
-* Mahasiswa UMT
-* Dosen Pengampu Mata Kuliah OOP
-* Tim Pengembang
+Fitur utama meliputi:
+* Otentikasi Pengguna (Login, Register, Logout, Session)
+* Manajemen Mata Kuliah (CRUD terfilter user)
+* Manajemen Tugas (CRUD terfilter user dengan Calendar datepicker)
+* Manajemen Catatan (CRUD terfilter user)
+* Dashboard Akademik (Dynamic Greeting, Statistik, Tugas Mendatang)
+* Smart Study Planner (Plan card generator dengan timestamp)
+* Academic Health Analyzer (Produktivitas score badge warna)
+* Quiz Generator (Kuis interaktif, scoring, & review jawaban)
 
 ---
 
 # 2. Overall Description
 
 ## 2.1 Product Perspective
-
-Aplikasi berjalan secara desktop menggunakan Java Swing.
-
-Data disimpan menggunakan MySQL.
-
-Fitur AI menggunakan Gemini API.
-
----
+Aplikasi berjalan di lingkungan desktop client-side menggunakan JDK 17, Swing GUI, FlatLaf Theme Manager, dan berkomunikasi dengan database relasional MySQL lokal menggunakan JDBC Driver. Integrasi AI dilakukan secara asynchronous memanfaatkan Java HttpClient untuk mengirim HTTP POST ke REST API endpoint Replicate.
 
 ## 2.2 Product Functions
-
-Sistem dapat:
-
-* Mengelola mata kuliah
-* Mengelola tugas
-* Mengelola catatan
-* Menampilkan dashboard akademik
-* Menghasilkan jadwal belajar menggunakan AI
-* Menganalisis kondisi akademik menggunakan AI
-* Menghasilkan soal latihan menggunakan AI
+Sistem memfasilitasi mahasiswa dalam:
+* Membuat akun baru dan masuk secara aman.
+* Mengelola data perkuliahan, tugas, dan ringkasan catatan kuliah.
+* Membaca ringkasan statistik dan melacak tugas darurat di dashboard.
+* Mendapatkan asisten AI untuk merumuskan jadwal prioritas mingguan.
+* Mengevaluasi kebugaran akademik secara berkala.
+* Mengikuti kuis evaluasi 5 soal pilihan ganda secara interaktif.
 
 ---
 
 # 3. Functional Requirements
 
-## Modul Login
+### FR-01: User Login
+* **Deskripsi**: Pengguna dapat masuk ke aplikasi dengan memasukkan username dan password.
+* **Input**: Username (`JTextField`), Password (`JPasswordField`).
+* **Proses**: Sistem mencocokkan input dengan record di tabel `users`.
+* **Output**: Membuka halaman dashboard jika cocok, atau menampilkan pesan kesalahan:
+  * Kosong: *"Mohon lengkapi username dan password"*
+  * Salah: *"Username atau password salah"*
 
-### FR-10 Login Pengguna
+### FR-02: User Register
+* **Deskripsi**: Pengguna dapat membuat akun baru jika belum terdaftar.
+* **Input**: Nama Lengkap, Username, Password, Konfirmasi Password.
+* **Proses**: Sistem memvalidasi keunikan username di database dan kecocokan password dengan konfirmasinya.
+* **Output**: Menyimpan user baru ke database dan mengarahkan kembali ke halaman login dengan pesan sukses.
 
-User dapat melakukan login sebelum masuk ke sistem utama.
+### FR-03: User Logout
+* **Deskripsi**: Pengguna dapat mengakhiri sesi aktif mereka kapan saja.
+* **Proses**: Pengguna menekan tombol "Keluar / Logout" di sidebar. Setelah konfirmasi, sistem memanggil `SessionManager.clearSession()`, menutup jendela dashboard utama, dan memunculkan kembali jendela login.
 
-Requirements:
-* User memasukkan username.
-* User memasukkan password.
-* Sistem mencocokkan kredensial dengan database `users`.
-* Sistem memvalidasi form login agar tidak boleh kosong.
-* Sistem membuka Main Dashboard setelah login sukses.
-* Sistem menginisialisasi akun admin default (username: admin, password: admin123) pada startup pertama jika tabel kosong.
+### FR-04: Manage Courses
+* **Deskripsi**: Pengguna dapat melakukan operasi CRUD untuk mata kuliah.
+* **Aturan Kepemilikan**: Hanya menampilkan mata kuliah yang memiliki `user_id` yang cocok dengan pengguna yang sedang login.
+* **Validasi**: Kode matakuliah dan nama matakuliah wajib diisi dan tidak boleh kosong.
 
-Aturan Validasi:
-* Jika username atau password kosong: Tampilkan pesan "Mohon lengkapi username dan password".
-* Jika username atau password salah: Tampilkan pesan "Username atau password salah".
+### FR-05: Manage Tasks
+* **Deskripsi**: Pengguna dapat melakukan operasi CRUD untuk tugas perkuliahan.
+* **Aturan Kepemilikan**: Hanya menampilkan dan mengaitkan tugas dengan mata kuliah milik pengguna yang bersangkutan.
+* **Tenggat Waktu**: Pemilihan tanggal wajib menggunakan widget dynamic calendar datepicker.
+* **Status**: Terdiri atas `Belum Dikerjakan`, `Sedang Dikerjakan`, atau `Selesai`.
 
----
+### FR-06: Manage Notes
+* **Deskripsi**: Pengguna dapat mengelola catatan pembelajaran.
+* **Aturan Kepemilikan**: Hanya menampilkan catatan milik pengguna yang aktif. Catatan dapat dihubungkan ke mata kuliah milik pengguna.
 
-## Modul Mata Kuliah
+### FR-07: Dashboard Statistics & Greeting
+* **Deskripsi**: Menampilkan ringkasan data akademik dan sambutan personal.
+* **Sambutan**: Menampilkan nama lengkap user secara dinamis ("Selamat Datang, [Nama User]").
+* **Statistik**: Menghitung jumlah mata kuliah, total tugas, tugas selesai, tugas tertunda, dan total catatan milik pengguna saat ini.
+* **Tugas Mendatang**: Menampilkan daftar hingga 4 tugas tertunda yang memiliki tenggat terdekat dengan aksen warna (Merah untuk tenggat < 2 hari, Oranye < 5 hari, Biru lainnya).
 
-### FR-01
+### FR-08: Smart Study Planner
+* **Deskripsi**: Menghasilkan rencana belajar mingguan otomatis menggunakan AI.
+* **Proses**: Mengambil data seluruh tugas perkuliahan aktif pengguna, mengirimkannya sebagai prompt terstruktur ke AI, dan menampilkan rencana mingguan.
+* **Output**: Ditampilkan pada kartu hasil rencana dengan cap tanggal-waktu (timestamp) pembuatan serta tombol "Salin Hasil" ke clipboard.
 
-User dapat menambah mata kuliah.
+### FR-09: Academic Health Analyzer
+* **Deskripsi**: Mendiagnosis kesehatan produktivitas akademik pengguna lewat AI.
+* **Proses**: Mengirimkan statistik angka mata kuliah, tugas tertunda, dan tugas selesai ke AI.
+* **Output**: Menampilkan hasil evaluasi dan menempatkan badge skor produktivitas dengan warna khusus (Merah < 50, Oranye/Kuning 50-75, Hijau > 75).
 
-### FR-02
-
-User dapat mengubah mata kuliah.
-
-### FR-03
-
-User dapat menghapus mata kuliah.
-
-### FR-04
-
-User dapat melihat daftar mata kuliah.
-
----
-
-## Modul Tugas
-
-### FR-05
-
-User dapat menambah tugas.
-
-### FR-06
-
-User dapat mengubah tugas.
-
-### FR-07
-
-User dapat menghapus tugas.
-
-### FR-08
-
-User dapat melihat daftar tugas.
+### FR-10: Quiz Generator
+* **Deskripsi**: Menguji pemahaman catatan kuliah pengguna secara interaktif.
+* **Proses**: AI memproses konten catatan perkuliahan yang dipilih dan merumuskannya ke dalam kuis 5 soal pilihan ganda.
+* **Interaktivitas**: Pengguna dapat memilih jawaban A/B/C/D melalui radio button, bernavigasi maju/mundur, menyelesaikan kuis, mendapatkan nilai akhir (0-100), dan meninjau kembali kecocokan jawaban benar/salah.
 
 ---
 
-## Modul Catatan
+# 4. Non-Functional Requirements
 
-### FR-09
+## 4.1 Security
+* **Isolasi Data**: Setiap query database SQL CRUD mata kuliah, tugas, dan catatan wajib menyertakan filter `WHERE user_id = ?`.
+* **Kredensial Sesi**: Penggunaan `SessionManager` untuk menyimpan user aktif selama masa runtime aplikasi.
 
-User dapat menambah catatan.
+## 4.2 Performance
+* **Asynchronous Threads**: Seluruh pemanggilan Replicate API untuk modul AI wajib dijalankan di dalam thread latar belakang (`SwingWorker`) agar tidak membekukan (freeze) GUI Event Dispatch Thread (EDT).
+* **Connection Pooling**: Re-use koneksi database via database singleton `DBConnection`.
 
-### FR-11
+## 4.3 Usability
+* **Consistent UI**: Penggunaan framework FlatLaf (FlatLightLaf) untuk memastikan tampilan yang seragam dan modern.
+* **Responsiveness**: Transisi tampilan menggunakan `CardLayout` untuk menyembunyikan kontainer kosong sebelum data AI selesai digenerate.
 
-User dapat mengubah catatan.
-
-### FR-12
-
-User dapat menghapus catatan.
-
-### FR-13
-
-User dapat melihat catatan.
-
----
-
-## Modul AI
-
-### FR-14
-
-User dapat menghasilkan Smart Study Plan.
-
-### FR-15
-
-User dapat menjalankan Academic Health Analyzer.
-
-### FR-16
-
-User dapat menghasilkan Quiz menggunakan AI.
+## 4.4 Reliability
+* **Integrity Constraints**: Penggunaan foreign key dengan opsi `ON DELETE CASCADE` di database MySQL untuk menjamin bahwa jika user atau matakuliah dihapus, seluruh tugas dan catatan yang terelasi akan terhapus otomatis secara konsisten.
 
 ---
 
-## Dashboard
-
-### FR-17
-
-User dapat melihat statistik akademik.
-
-
----
-
-# 4. Non Functional Requirements
-
-## Performance
-
-NFR-01
-
-Waktu respon CRUD maksimal 2 detik.
-
----
-
-NFR-02
-
-Waktu respon AI maksimal 10 detik.
-
----
-
-## Reliability
-
-NFR-03
-
-Data tersimpan secara permanen dalam database.
-
----
-
-## Usability
-
-NFR-04
-
-Aplikasi dapat digunakan tanpa pelatihan khusus.
-
----
-
-## Security
-
-NFR-05
-
-API Key tidak disimpan secara hardcode.
-
----
-
-# 5. Business Rules
-
-BR-01
-
-Setiap tugas harus terkait dengan satu mata kuliah.
-
----
-
-BR-02
-
-Status tugas hanya boleh:
-
-* Belum Dikerjakan
-* Sedang Dikerjakan
-* Selesai
-
----
-
-BR-03
-
-Quiz hanya dapat dibuat dari catatan yang telah tersimpan.
-
----
-
-BR-04
-
-Academic Health Analyzer menggunakan data tugas yang tersedia.
-
----
-
-BR-05
-
-Study Planner menggunakan deadline tugas sebagai dasar prioritas.
-
----
-
-# 6. Use Case Diagram
+# 5. Use Case Diagram
 
 ```mermaid
 flowchart LR
 
 User((Mahasiswa))
 
-UC1[Kelola Mata Kuliah]
-UC2[Kelola Tugas]
-UC3[Kelola Catatan]
-UC4[Lihat Dashboard]
-UC5[Generate Study Plan]
-UC6[Analyze Academic Health]
-UC7[Generate Quiz]
+UC1[Login & Register]
+UC2[Kelola Data Kuliah]
+UC3[Kelola Tugas]
+UC4[Kelola Catatan]
+UC5[Lihat Dashboard & Tugas Mendatang]
+UC6[Jadwal Belajar AI]
+UC7[Analisis Kesehatan AI]
+UC8[Kuis Interaktif AI]
 
 User --> UC1
 User --> UC2
@@ -274,244 +146,33 @@ User --> UC4
 User --> UC5
 User --> UC6
 User --> UC7
+User --> UC8
 ```
 
 ---
 
-# 7. Use Case Description
-
-## UC-01 Kelola Mata Kuliah
-
-Actor:
-Mahasiswa
-
-Precondition:
-Aplikasi terbuka.
-
-Main Flow:
-
-1. Mahasiswa membuka menu Mata Kuliah.
-2. Mahasiswa menambah data.
-3. Sistem menyimpan data.
-4. Data ditampilkan pada tabel.
-
-Post Condition:
-
-Data mata kuliah tersimpan.
-
----
-
-## UC-02 Kelola Tugas
-
-Actor:
-Mahasiswa
-
-Main Flow:
-
-1. Membuka menu tugas.
-2. Menambah tugas.
-3. Menyimpan data.
-4. Sistem menampilkan daftar tugas.
-
----
-
-## UC-03 Kelola Catatan
-
-Actor:
-Mahasiswa
-
-Main Flow:
-
-1. Membuka menu catatan.
-2. Menambah catatan.
-3. Menyimpan catatan.
-4. Sistem menampilkan daftar catatan.
-
----
-
-## UC-04 Generate Study Plan
-
-Actor:
-Mahasiswa
-
-Main Flow:
-
-1. Membuka AI Center.
-2. Memilih Study Planner.
-3. Sistem mengambil data tugas.
-4. Gemini melakukan analisis.
-5. Sistem menampilkan rekomendasi.
-
----
-
-## UC-05 Academic Health Analyzer
-
-Actor:
-Mahasiswa
-
-Main Flow:
-
-1. Membuka AI Center.
-2. Memilih Academic Health.
-3. Sistem membaca data akademik.
-4. Gemini melakukan analisis.
-5. Hasil ditampilkan.
-
----
-
-## UC-06 Generate Quiz
-
-Actor:
-Mahasiswa
-
-Main Flow:
-
-1. Memilih catatan.
-2. Klik Generate Quiz.
-3. Gemini memproses catatan.
-4. Sistem menampilkan soal.
-
----
-
-# 8. Activity Diagram
-
-## Activity Diagram Kelola Tugas
+# 6. User Flow
 
 ```mermaid
 flowchart TD
-
-A[Mulai]
-B[Buka Menu Tugas]
-C[Isi Form Tugas]
-D[Simpan]
-E[Validasi]
-F[Simpan Database]
-G[Tampilkan Data]
-H[Selesai]
-
-A --> B
-B --> C
-C --> D
-D --> E
-E --> F
-F --> G
-G --> H
+    Start([Mulai]) --> Login{Sudah punya akun?}
+    Login -- Tidak --> Register[RegisterView]
+    Register --> LoginView[LoginView]
+    Login -- Ya --> LoginView
+    LoginView --> AuthCheck{Kredensial valid?}
+    AuthCheck -- Tidak --> Error[Tampilkan Error] --> LoginView
+    AuthCheck -- Ya --> Dashboard[DashboardView]
+    
+    Dashboard --> Menu{Pilih Menu}
+    Menu --> Courses[Mata Kuliah CRUD]
+    Menu --> Tasks[Tugas CRUD]
+    Menu --> Notes[Catatan CRUD]
+    Menu --> AI[AI Assistant Dashboard]
+    
+    AI --> StudyPlan[Smart Study Planner]
+    AI --> Health[Academic Health Analyzer]
+    AI --> Quiz[Quiz Generator 2.0]
+    
+    Menu --> Logout[Logout / Keluar]
+    Logout --> LoginView
 ```
-
----
-
-## Activity Diagram Generate Study Plan
-
-```mermaid
-flowchart TD
-
-A[Mulai]
-B[Buka AI Center]
-C[Klik Generate Study Plan]
-D[Ambil Data Tugas]
-E[Kirim ke Gemini API]
-F[Terima Hasil Analisis]
-G[Tampilkan Study Plan]
-H[Selesai]
-
-A --> B
-B --> C
-C --> D
-D --> E
-E --> F
-F --> G
-G --> H
-```
-
----
-
-## Activity Diagram Generate Quiz
-
-```mermaid
-flowchart TD
-
-A[Mulai]
-B[Pilih Catatan]
-C[Klik Generate Quiz]
-D[Kirim Catatan ke Gemini]
-E[Generate Soal]
-F[Tampilkan Quiz]
-G[Selesai]
-
-A --> B
-B --> C
-C --> D
-D --> E
-E --> F
-F --> G
-```
-
----
-
-# 9. User Flow
-
-```mermaid
-flowchart LR
-
-Login --> Dashboard
-Dashboard --> MataKuliah
-Dashboard --> Tugas
-Dashboard --> Catatan
-Dashboard --> AICenter
-
-AICenter --> StudyPlanner
-AICenter --> AcademicHealth
-AICenter --> QuizGenerator
-```
-
-
----
-
-# 10. Data Dictionary
-
-## Mata Kuliah
-
-| Field       | Type    |
-| ----------- | ------- |
-| id          | Integer |
-| course_code | Varchar |
-| course_name | Varchar |
-| sks         | Integer |
-| lecturer    | Varchar |
-
----
-
-## Tugas
-
-| Field     | Type    |
-| --------- | ------- |
-| id        | Integer |
-| course_id | Integer |
-| title     | Varchar |
-| deadline  | Date    |
-| status    | Varchar |
-
----
-
-## Catatan
-
-| Field     | Type    |
-| --------- | ------- |
-| id        | Integer |
-| course_id | Integer |
-| title     | Varchar |
-| content   | Text    |
-
----
-
-# 11. Acceptance Criteria
-
-* CRUD Mata Kuliah berjalan.
-* CRUD Tugas berjalan.
-* CRUD Catatan berjalan.
-* Dashboard menampilkan statistik.
-* Smart Study Planner berjalan.
-* Academic Health Analyzer berjalan.
-* Quiz Generator berjalan.
-* Integrasi Gemini API berhasil.
-* Tidak terdapat error saat demonstrasi.
