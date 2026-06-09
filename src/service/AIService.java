@@ -72,9 +72,9 @@ public class AIService {
                         for (JsonElement el : outputElement.getAsJsonArray()) {
                             sb.append(el.getAsString());
                         }
-                        return sb.toString();
+                        return sanitizeMarkdown(sb.toString());
                     } else {
-                        return outputElement.getAsString();
+                        return sanitizeMarkdown(outputElement.getAsString());
                     }
                 }
                 return "Error: Unexpected API response structure: " + response.body();
@@ -85,6 +85,14 @@ public class AIService {
             System.err.println("[GeminiService] Error calling Replicate: " + e.getMessage());
             return "Error calling Replicate API: " + e.getMessage();
         }
+    }
+
+    private String sanitizeMarkdown(String input) {
+        if (input == null) return "";
+        // Strip markdown headings (#), bold markers (**), and italic markers (*)
+        return input.replaceAll("\\*\\*", "")
+                    .replaceAll("\\*", "")
+                    .replaceAll("#+", "");
     }
 
     public String buildStudyPlanPrompt(java.util.List<model.Course> courses, java.util.List<model.Task> tasks) {
@@ -121,16 +129,18 @@ public class AIService {
         sb.append("- Seimbangkan beban kerja\n");
         sb.append("- Cegah kelebihan beban pada satu hari\n");
         sb.append("- Gunakan Bahasa Indonesia\n");
-        sb.append("- Gunakan jadwal harian yang jelas\n\n");
+        sb.append("- Gunakan jadwal harian yang jelas\n");
+        sb.append("- JANGAN gunakan simbol markdown seperti *, **, #, atau ## dalam respon Anda.\n\n");
         
         sb.append("Format keluaran:\n");
-        sb.append("Senin\n* ...\n\n");
-        sb.append("Selasa\n* ...\n\n");
-        sb.append("Rabu\n* ...\n\n");
-        sb.append("Kamis\n* ...\n\n");
-        sb.append("Jumat\n* ...\n\n");
-        sb.append("Sabtu\n* ...\n\n");
-        sb.append("Minggu\n* ...\n");
+        sb.append("Senin\n- ...\n\n");
+        sb.append("Selasa\n- ...\n\n");
+        sb.append("Rabu\n- ...\n\n");
+        sb.append("Kamis\n- ...\n\n");
+        sb.append("Jumat\n- ...\n\n");
+        sb.append("Sabtu\n- ...\n\n");
+        sb.append("Minggu\n- ...\n");
+
         
         return sb.toString();
     }
